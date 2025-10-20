@@ -1,0 +1,22 @@
+openapi: 3.0.0
+info:
+  title: OurPlaneteAnalyzing API
+  version: 1.0.0
+  description: API do analizy stanu planety Ziemia
+servers:
+  - url: https://api.twojadomena.pl/v1
+paths:
+  /analyze:
+    post:
+      summary: Analiza danych klimatycznych
+      responses:
+        '200':
+          description: Wynik analizy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    example: Temperatura globalna wzrosla o 1.55°C
