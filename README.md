@@ -1,20 +1,32 @@
 # OurPlanetAnalyzing
-# OurPlaneteAnalyzing to zaawansowany system GPT,który analizuje dane z:stacji badawczych na biegunach  teleskopów stacji sejsmologicznych i monitorujących CO2 - systemów monitoringu klimatycznego, oceanów, lodowców - aktywności wulkanów, ruchów płyt tektonicznych..🌍 Zrozumieć Ziemię – projekt, który przybliża nam to, co naprawdę się dzieje.Choć podobne badania prowadzone są od dawna na skalę międzynarodową, ten projekt jest esencją wszystkich dotychczasowych wysiłków naukowych — zebranych i zaprezentowanych w przystępnej, zrozumiałej formie dla każdego.
 
-OurPlaneteAnalyzing integruje dane z teleskopów (w tym Webba), satelitów, stacji polarnych, obserwatoriów sejsmicznych, raportów ekologów i wielu innych źródeł.
+OurPlanetAnalyzing to API demonstracyjne do analizy danych klimatycznych,
+srodowiskowych i geofizycznych. Projekt udostepnia endpointy do zadawania
+pytan analitycznych, generowania raportu oraz sprawdzania statusu uslugi.
 
-🔬 Dzięki temu analizujemy:
-– zmiany klimatyczne i globalne ocieplenie,
-– topnienie lodowców i wzrost poziomu oceanów,
-– aktywność wulkaniczną i tektoniczną,
-– wpływ Słońca, Księżyca i kosmosu na nasz ekosystem,
-– emisje CO₂ oraz inne skutki działalności człowieka.
+## Uruchomienie
 
-Celem projektu jest przybliżenie każdemu z nas tego, co już dzieje się na Ziemi, byśmy mogli lepiej zrozumieć naszą wspólną przyszłość.
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app:app --reload
+```
 
-📊 Raporty i analizy będą sukcesywnie publikowane w ramach projektu.
+Po uruchomieniu API jest dostepne pod adresem `http://127.0.0.1:8000`.
+Dokumentacja OpenAPI jest dostepna pod `http://127.0.0.1:8000/docs`.
 
-📍 OurPlaneteAnalyzing – opracował: Marcin Wielebiński
+## Endpointy
 
-#ClimateChange #EarthObservation #Science #Environment #DataAnalysis #OurPlaneteAnalyzing #Education #Awareness #PlanetEarth #MarcinWielebiński
+- `POST /analyze` - zwraca przykladowa analize dla przekazanego pytania.
+- `POST /generate-report` - zwraca metadane wygenerowanego raportu.
+- `GET /status` - sprawdza stan aplikacji.
 
+## Generowanie OpenAPI
+
+```bash
+python generate_openapi_files.py
+```
+
+Polecenie odswieza pliki `ourplaneteanalyzing_full_openapi.json` i
+`ourplaneteanalyzing_full_openapi.yaml` na podstawie dzialajacej aplikacji.
