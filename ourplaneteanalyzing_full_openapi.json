@@ -1,36 +1,126 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.1.0",
   "info": {
-    "title": "OurPlaneteAnalyzing API",
+    "title": "OurPlanetAnalyzing API",
     "version": "1.0.0",
-    "description": "API do analizy stanu planety Ziemia"
+    "description": "API do analizy klimatu, srodowiska i danych geofizycznych."
   },
-  "servers": [
-    {
-      "url": "https://api.twojadomena.pl/v1"
-    }
-  ],
   "paths": {
     "/analyze": {
       "post": {
-        "summary": "Analiza danych klimatycznych",
+        "summary": "Analyze",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Wynik analizy",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "response": {
-                      "type": "string",
-                      "example": "Temperatura globalna wzrosla o 1.55\u00b0C"
-                    }
-                  }
+                  "$ref": "#/components/schemas/AnalyzeResponse"
                 }
               }
             }
           }
+        }
+      }
+    },
+    "/generate-report": {
+      "post": {
+        "summary": "Generate Report",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "summary": "Status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalyzeRequest": {
+        "type": "object",
+        "required": ["question"],
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Pytanie lub temat analizy dotyczacy stanu planety."
+          },
+          "output_format": {
+            "type": "string",
+            "enum": ["json", "pdf"],
+            "default": "json"
+          }
+        }
+      },
+      "AnalyzeResponse": {
+        "type": "object",
+        "required": ["response", "sources", "generated_at"],
+        "properties": {
+          "response": {"type": "string"},
+          "sources": {"type": "array", "items": {"type": "string"}},
+          "generated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ReportResponse": {
+        "type": "object",
+        "required": ["report_id", "format", "status", "summary"],
+        "properties": {
+          "report_id": {"type": "string"},
+          "format": {"type": "string", "enum": ["pdf", "json"]},
+          "status": {"type": "string", "const": "generated"},
+          "summary": {"type": "string"}
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "required": ["status", "model", "generated_at"],
+        "properties": {
+          "status": {"type": "string", "const": "ok"},
+          "model": {"type": "string"},
+          "generated_at": {"type": "string", "format": "date-time"}
         }
       }
     }
