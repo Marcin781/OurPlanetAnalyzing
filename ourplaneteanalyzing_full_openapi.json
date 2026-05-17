@@ -2,22 +2,22 @@
   "openapi": "3.1.0",
   "info": {
     "title": "OurPlanetAnalyzing API",
-    "version": "1.0.0",
-    "description": "API do analizy klimatu, srodowiska i danych geofizycznych."
+    "description": "Aplikacja do demonstracyjnej analizy klimatu, srodowiska i danych geofizycznych.",
+    "version": "1.1.0"
   },
   "paths": {
     "/analyze": {
       "post": {
         "summary": "Analyze",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnalyzeRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -37,14 +37,14 @@
       "post": {
         "summary": "Generate Report",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnalyzeRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -86,40 +86,46 @@
         "properties": {
           "question": {
             "type": "string",
+            "minLength": 3,
             "description": "Pytanie lub temat analizy dotyczacy stanu planety."
           },
           "output_format": {
             "type": "string",
-            "enum": ["json", "pdf"],
+            "enum": ["json", "markdown"],
             "default": "json"
           }
         }
       },
       "AnalyzeResponse": {
         "type": "object",
-        "required": ["response", "sources", "generated_at"],
+        "required": ["response", "risk_level", "recommendations", "sources", "generated_at"],
         "properties": {
           "response": {"type": "string"},
+          "risk_level": {"type": "string", "enum": ["niski", "umiarkowany", "wysoki"]},
+          "recommendations": {"type": "array", "items": {"type": "string"}},
           "sources": {"type": "array", "items": {"type": "string"}},
           "generated_at": {"type": "string", "format": "date-time"}
         }
       },
       "ReportResponse": {
         "type": "object",
-        "required": ["report_id", "format", "status", "summary"],
+        "required": ["report_id", "format", "status", "summary", "content", "generated_at"],
         "properties": {
           "report_id": {"type": "string"},
-          "format": {"type": "string", "enum": ["pdf", "json"]},
+          "format": {"type": "string", "enum": ["json", "markdown"]},
           "status": {"type": "string", "const": "generated"},
-          "summary": {"type": "string"}
+          "summary": {"type": "string"},
+          "content": {"type": "string"},
+          "generated_at": {"type": "string", "format": "date-time"}
         }
       },
       "StatusResponse": {
         "type": "object",
-        "required": ["status", "model", "generated_at"],
+        "required": ["status", "app_name", "version", "generated_at"],
         "properties": {
           "status": {"type": "string", "const": "ok"},
-          "model": {"type": "string"},
+          "app_name": {"type": "string"},
+          "version": {"type": "string"},
           "generated_at": {"type": "string", "format": "date-time"}
         }
       }
