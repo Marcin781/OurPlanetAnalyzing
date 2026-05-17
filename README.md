@@ -1,8 +1,8 @@
 # OurPlanetAnalyzing
 
-OurPlanetAnalyzing to API demonstracyjne do analizy danych klimatycznych,
-srodowiskowych i geofizycznych. Projekt udostepnia endpointy do zadawania
-pytan analitycznych, generowania raportu oraz sprawdzania statusu uslugi.
+OurPlanetAnalyzing to mala aplikacja webowa i API demonstracyjne do analizy
+danych klimatycznych, srodowiskowych i geofizycznych. Projekt udostepnia
+strone w przegladarce, endpointy API, generator raportu oraz status uslugi.
 
 ## Uruchomienie
 
@@ -16,11 +16,24 @@ uvicorn app:app --reload
 Po uruchomieniu API jest dostepne pod adresem `http://127.0.0.1:8000`.
 Dokumentacja OpenAPI jest dostepna pod `http://127.0.0.1:8000/docs`.
 
+Na Windows mozna tez uruchomic:
+
+```bash
+run.bat
+```
+
 ## Endpointy
 
+- `GET /` - strona aplikacji z formularzem analizy.
 - `POST /analyze` - zwraca przykladowa analize dla przekazanego pytania.
 - `POST /generate-report` - zwraca metadane wygenerowanego raportu.
 - `GET /status` - sprawdza stan aplikacji.
+
+## Testy
+
+```bash
+python smoke_test.py
+```
 
 ## Generowanie OpenAPI
 
