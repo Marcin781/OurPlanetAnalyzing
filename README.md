@@ -32,7 +32,8 @@ run.bat
 ## Testy
 
 ```bash
-python smoke_test.py
+pip install -r requirements-dev.txt
+pytest
 ```
 
 ## Generowanie OpenAPI
