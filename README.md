@@ -22,6 +22,15 @@ Na Windows mozna tez uruchomic:
 run.bat
 ```
 
+## Docker
+
+```bash
+docker compose up --build
+```
+
+Po starcie kontenera aplikacja jest dostepna pod `http://127.0.0.1:8000`.
+Status mozna sprawdzic pod `http://127.0.0.1:8000/status`.
+
 ## Endpointy
 
 - `GET /` - strona aplikacji z formularzem analizy.
