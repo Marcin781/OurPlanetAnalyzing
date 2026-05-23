@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 app = FastAPI(
     title="OurPlanetAnalyzing API",
     version="1.1.0",
-    description="Aplikacja do demonstracyjnej analizy klimatu, srodowiska i danych geofizycznych.",
+    description="Aplikacja do demonstracyjnej analizy klimatu,srodowiska i danych geofizycznych.",
 )
 
 
