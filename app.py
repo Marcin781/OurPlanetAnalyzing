@@ -1,5 +1,5 @@
+import json
 from datetime import datetime, timezone
-from html import escape
 from typing import Literal
 
 from fastapi import FastAPI
@@ -212,23 +212,36 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
 @app.post("/generate-report", response_model=ReportResponse)
 def generate_report(request: AnalyzeRequest) -> ReportResponse:
     response, risk_level, recommendations = build_analysis(request.question)
-    safe_question = escape(request.question)
-    content = (
-        "# Raport OurPlanetAnalyzing\n\n"
-        f"## Pytanie\n{safe_question}\n\n"
-        f"## Poziom ryzyka\n{risk_level}\n\n"
-        f"## Analiza\n{response}\n\n"
-        "## Rekomendacje\n"
-        + "\n".join(f"- {item}" for item in recommendations)
-    )
+    generated_at = datetime.now(timezone.utc)
+
+    if request.output_format == "json":
+        content = json.dumps(
+            {
+                "question": request.question,
+                "risk_level": risk_level,
+                "analysis": response,
+                "recommendations": recommendations,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    else:
+        content = (
+            "# Raport OurPlanetAnalyzing\n\n"
+            f"## Pytanie\n{request.question}\n\n"
+            f"## Poziom ryzyka\n{risk_level}\n\n"
+            f"## Analiza\n{response}\n\n"
+            "## Rekomendacje\n"
+            + "\n".join(f"- {item}" for item in recommendations)
+        )
 
     return ReportResponse(
-        report_id=f"ourplanet-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+        report_id=f"ourplanet-{generated_at.strftime('%Y%m%d%H%M%S')}",
         format=request.output_format,
         status="generated",
         summary=f"Raport wygenerowany dla pytania: {request.question}",
         content=content,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=generated_at,
     )
 
 
