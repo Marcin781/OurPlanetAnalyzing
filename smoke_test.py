@@ -1,3 +1,5 @@
+import json
+
 from app import AnalyzeRequest, analyze, app, generate_report, status
 from fastapi.testclient import TestClient
 
@@ -27,6 +29,8 @@ def main() -> None:
         raise RuntimeError("Analyze endpoint returned unexpected risk level")
     if report_json.status != "generated":
         raise RuntimeError("Report endpoint did not generate a JSON report")
+    if json.loads(report_json.content)["risk_level"] != "wysoki":
+        raise RuntimeError("JSON report content is missing the expected risk level")
     if report_markdown.status != "generated":
         raise RuntimeError("Report endpoint did not generate a Markdown report")
     if report_markdown.format != "markdown":
