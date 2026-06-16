@@ -62,6 +62,8 @@ KEYWORD_SIGNALS = {
     "susza": "ryzyko suszy",
 }
 
+SOURCES = ["NASA", "ESA", "WMO", "IPCC"]
+
 
 def build_analysis(question: str) -> tuple[str, str, list[str]]:
     normalized = question.lower()
@@ -202,22 +204,22 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         response=response,
         risk_level=risk_level,
         recommendations=recommendations,
-        sources=["NASA", "ESA", "WMO", "IPCC"],
+        sources=SOURCES,
         generated_at=datetime.now(timezone.utc),
     )
 
 
 @app.post("/generate-report", response_model=ReportResponse)
 def generate_report(request: AnalyzeRequest) -> ReportResponse:
-    analysis = analyze(request)
+    response, risk_level, recommendations = build_analysis(request.question)
     safe_question = escape(request.question)
     content = (
-        f"# Raport OurPlanetAnalyzing\n\n"
+        "# Raport OurPlanetAnalyzing\n\n"
         f"## Pytanie\n{safe_question}\n\n"
-        f"## Poziom ryzyka\n{analysis.risk_level}\n\n"
-        f"## Analiza\n{analysis.response}\n\n"
-        f"## Rekomendacje\n"
-        + "\n".join(f"- {item}" for item in analysis.recommendations)
+        f"## Poziom ryzyka\n{risk_level}\n\n"
+        f"## Analiza\n{response}\n\n"
+        "## Rekomendacje\n"
+        + "\n".join(f"- {item}" for item in recommendations)
     )
 
     return ReportResponse(
