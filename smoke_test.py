@@ -1,4 +1,5 @@
 from app import AnalyzeRequest, analyze, app, generate_report, status
+from fastapi.testclient import TestClient
 
 
 def main() -> None:
@@ -14,15 +15,36 @@ def main() -> None:
         output_format="json",
     )
     analysis = analyze(request)
-    report = generate_report(request)
+    report_json = generate_report(request)
+    markdown_request = AnalyzeRequest(
+        question="Sprawdz CO2, klimat i temperature",
+        output_format="markdown",
+    )
+    report_markdown = generate_report(markdown_request)
     health = status()
 
     if analysis.risk_level != "wysoki":
         raise RuntimeError("Analyze endpoint returned unexpected risk level")
-    if report.status != "generated":
-        raise RuntimeError("Report endpoint did not generate a report")
+    if report_json.status != "generated":
+        raise RuntimeError("Report endpoint did not generate a JSON report")
+    if report_markdown.status != "generated":
+        raise RuntimeError("Report endpoint did not generate a Markdown report")
+    if report_markdown.format != "markdown":
+        raise RuntimeError("Markdown report returned the wrong format")
+    if "# Raport OurPlanetAnalyzing" not in report_markdown.content:
+        raise RuntimeError("Markdown report content is missing the report heading")
     if health.status != "ok":
         raise RuntimeError("Status endpoint is not OK")
+
+    client = TestClient(app)
+    invalid_response = client.post(
+        "/analyze",
+        json={"question": "xx", "output_format": "json"},
+    )
+    if invalid_response.status_code != 422:
+        raise RuntimeError(
+            f"Expected 422 for invalid analyze request, got {invalid_response.status_code}"
+        )
 
     print("Smoke test passed")
 
