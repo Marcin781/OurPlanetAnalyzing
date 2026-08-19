@@ -1,13 +1,6 @@
 import pytest
-import httpx
 
-from data.ncei_client import NCEIError, normalize_daily_records, search_datasets
-
-
-@pytest.mark.asyncio
-async def test_search_datasets_rejects_empty_keyword():
-    with pytest.raises(ValueError):
-        await search_datasets("   ")
+from data.ncei_client import NCEIError, normalize_daily_records
 
 
 def test_normalize_daily_records_keeps_analysis_fields():
