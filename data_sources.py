@@ -51,3 +51,28 @@ async def fetch_nasa_power_temperature(
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
         "source_url": str(response.url),
     }
+
+
+async def fetch_nasa_power_temperature_points(
+    points: dict[str, dict[str, Any]],
+    start_year: int,
+    end_year: int,
+) -> dict[str, Any]:
+    """Fetch the same temperature series for multiple named representative points."""
+    results: dict[str, Any] = {}
+    for key, point in points.items():
+        try:
+            results[key] = await fetch_nasa_power_temperature(
+                latitude=float(point["latitude"]),
+                longitude=float(point["longitude"]),
+                start_year=start_year,
+                end_year=end_year,
+            )
+        except DataSourceError as exc:
+            results[key] = {"error": str(exc), "location": point}
+    return {
+        "provider": "NASA POWER",
+        "period": {"start": start_year, "end": end_year},
+        "points": results,
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+    }
