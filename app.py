@@ -8,11 +8,12 @@ from pydantic import BaseModel, Field
 
 from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points
 from regions import CENTRAL_EASTERN_EUROPE, POLISH_VOIVODESHIPS
+from cities import VOIVODESHIP_CAPITALS
 
 
 app = FastAPI(
     title="OurPlanetAnalyzing API",
-    version="1.4.0",
+    version="1.5.0",
     description="Analiza klimatu, srodowiska i danych geofizycznych z weryfikowalnym zrodlem danych.",
 )
 
@@ -197,6 +198,15 @@ async def poland_voivodeships_temperature() -> dict:
     """Return live NASA POWER temperature summaries for all 16 Polish voivodeships."""
     result = await build_regional_temperature(POLISH_VOIVODESHIPS, "Polska")
     result["method"] = "one representative point per voivodeship"
+    return result
+
+
+@app.get("/poland/voivodeship-capitals/temperature")
+async def voivodeship_capitals_temperature() -> dict:
+    """Return live NASA POWER temperature summaries for 18 Polish voivodeship-capital cities."""
+    result = await build_regional_temperature(VOIVODESHIP_CAPITALS, "Miasta wojewódzkie Polski")
+    result["method"] = "one representative NASA POWER point per voivodeship-capital city"
+    result["city_count"] = len(VOIVODESHIP_CAPITALS)
     return result
 
 
