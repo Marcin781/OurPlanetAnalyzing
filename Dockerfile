@@ -12,6 +12,7 @@ RUN python -m pip install --upgrade pip \
 
 COPY app.py .
 COPY data_sources.py .
+COPY regions.py .
 COPY analysis ./analysis
 COPY data ./data
 COPY ourplaneteanalyzing_full_openapi.json .
