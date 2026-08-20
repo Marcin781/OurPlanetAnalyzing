@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: ourplanet-analyzing
+    runtime: docker
+    plan: free
+    healthCheckPath: /status
+    autoDeploy: true
