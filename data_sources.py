@@ -6,29 +6,48 @@ from typing import Any
 import httpx
 
 
-NCEI_CDO_BASE = "https://www.ncei.noaa.gov/cdo-web/api/v2"
+NASA_POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
 
 
 class DataSourceError(RuntimeError):
     pass
 
 
-async def fetch_ncei_datasets(limit: int = 10) -> dict[str, Any]:
-    """Fetch public NOAA/NCEI dataset metadata without requiring an API key."""
-    url = f"{NCEI_CDO_BASE}/datasets"
-    params = {"limit": limit, "sortfield": "name", "sortorder": "asc"}
+async def fetch_nasa_power_temperature(
+    latitude: float,
+    longitude: float,
+    start_year: int,
+    end_year: int,
+) -> dict[str, Any]:
+    """Fetch monthly 2-m air temperature from NASA POWER public API."""
+    params = {
+        "parameters": "T2M",
+        "community": "RE",
+        "longitude": longitude,
+        "latitude": latitude,
+        "start": start_year,
+        "end": end_year,
+        "format": "JSON",
+    }
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(url, params=params)
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(NASA_POWER_URL, params=params)
             response.raise_for_status()
             payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:
-        raise DataSourceError(f"NCEI request failed: {exc}") from exc
+        raise DataSourceError(f"NASA POWER request failed: {exc}") from exc
+
+    properties = payload.get("properties", {})
+    parameter = properties.get("parameter", {})
+    temperature = parameter.get("T2M", {})
 
     return {
-        "provider": "NOAA National Centers for Environmental Information",
-        "endpoint": str(response.url),
+        "provider": "NASA POWER",
+        "parameter": "T2M",
+        "unit": "degC",
+        "location": {"latitude": latitude, "longitude": longitude},
+        "period": {"start": start_year, "end": end_year},
+        "data": temperature,
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
-        "count": payload.get("count", 0),
-        "results": payload.get("results", []),
+        "source_url": str(response.url),
     }
