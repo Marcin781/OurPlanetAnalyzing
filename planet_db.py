@@ -6,7 +6,15 @@ from contextlib import contextmanager
 import psycopg
 from psycopg.rows import dict_row
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+
+def get_database_url() -> str | None:
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        return None
+    if "sslmode=" not in url:
+        url += "&sslmode=require" if "?" in url else "?sslmode=require"
+    return url
+
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS observations (
@@ -35,9 +43,10 @@ CREATE TABLE IF NOT EXISTS weekly_reports (
 
 @contextmanager
 def connection():
-    if not DATABASE_URL:
+    url = get_database_url()
+    if not url:
         raise RuntimeError("DATABASE_URL is not configured")
-    with psycopg.connect(DATABASE_URL, row_factory=dict_row) as conn:
+    with psycopg.connect(url, row_factory=dict_row) as conn:
         yield conn
 
 
@@ -66,3 +75,15 @@ def recent_observations(metric: str, limit: int = 120):
             "SELECT source, metric, observed_at, value, unit, anomaly, metadata FROM observations WHERE metric=%s ORDER BY observed_at DESC LIMIT %s",
             (metric, limit),
         ).fetchall()
+
+
+def db_status() -> dict:
+    url = get_database_url()
+    if not url:
+        return {"status": "not_configured"}
+    try:
+        with connection() as conn:
+            count = conn.execute("SELECT count(*) AS n FROM observations").fetchone()["n"]
+        return {"status": "ok", "observations": count}
+    except Exception as exc:
+        return {"status": "error", "error": str(exc)[:300]}
