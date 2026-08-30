@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 
 def get_database_url() -> str | None:
@@ -64,7 +65,7 @@ def insert_observation(source: str, metric: str, observed_at, value, unit=None, 
                ON CONFLICT (source, metric, observed_at) DO UPDATE SET
                  value=EXCLUDED.value, unit=EXCLUDED.unit, anomaly=EXCLUDED.anomaly,
                  metadata=EXCLUDED.metadata""",
-            (source, metric, observed_at, value, unit, anomaly, metadata or {}),
+            (source, metric, observed_at, value, unit, anomaly, Jsonb(metadata or {})),
         )
         conn.commit()
 
