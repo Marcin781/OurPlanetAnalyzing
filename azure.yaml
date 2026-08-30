@@ -1,0 +1,10 @@
+name: dziennik-planety
+metadata:
+  template: dziennik-planety
+infra:
+  provider: bicep
+services:
+  web:
+    project: .
+    language: python
+    host: containerapp
