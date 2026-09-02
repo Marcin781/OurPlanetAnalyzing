@@ -32,7 +32,10 @@ async def usgs_earthquakes() -> dict[str, Any]:
     for feature in data.get("features", []):
         p = feature.get("properties", {})
         coords = feature.get("geometry", {}).get("coordinates") or [None, None, None]
-        events.append({"id": feature.get("id"), "place": p.get("place"), "magnitude": p.get("mag"), "time": p.get("time"), "depth_km": coords[2], "url": p.get("url")})
+        lon = coords[0] if len(coords) > 0 else None
+        lat = coords[1] if len(coords) > 1 else None
+        depth = coords[2] if len(coords) > 2 else None
+        events.append({"id": feature.get("id"), "place": p.get("place"), "magnitude": p.get("mag"), "time": p.get("time"), "depth_km": depth, "latitude": lat, "longitude": lon, "geometry": {"type": "Point", "coordinates": [lon, lat]} if lat is not None and lon is not None else None, "url": p.get("url")})
     return {"source": "USGS", "status": "ok", "updated": utc_now(), "events": events}
 
 async def noaa_co2() -> dict[str, Any]:
@@ -67,8 +70,7 @@ async def nasa_global_temperature() -> dict[str, Any]:
     return {"source": "NASA GISS", "status": "ok", "unit": "°C anomaly", "base_period": "1951-1980", "rows": rows[-10:], "latest": rows[-1]}
 
 async def copernicus_climate_pulse() -> dict[str, Any]:
-    url = "https://sites.ecmwf.int/data/climatepulse/data/series/era5_daily_series_2t_global.csv"
-    text = await get_text(url)
+    text = await get_text("https://sites.ecmwf.int/data/climatepulse/data/series/era5_daily_series_2t_global.csv")
     rows = []
     for row in csv.reader(io.StringIO(text)):
         if not row or row[0].lower().startswith("date") or row[0].startswith("#"): continue
@@ -140,10 +142,7 @@ async def noaa_ocean_indicator() -> dict[str, Any]:
     return {"source": "NOAA PSL", "status": "ok", "indicator": "AMO", "rows": rows[-10:], "note": "AMO jest wskaźnikiem oceanicznym, a nie globalną temperaturą oceanów."}
 
 async def nsidc_ice() -> dict[str, Any]:
-    urls = {
-        "north": "https://noaadata.apps.nsidc.org/NOAA/G02135/north/daily/data/N_seaice_extent_daily_v4.0.csv",
-        "south": "https://noaadata.apps.nsidc.org/NOAA/G02135/south/daily/data/S_seaice_extent_daily_v4.0.csv",
-    }
+    urls = {"north": "https://noaadata.apps.nsidc.org/NOAA/G02135/north/daily/data/N_seaice_extent_daily_v4.0.csv", "south": "https://noaadata.apps.nsidc.org/NOAA/G02135/south/daily/data/S_seaice_extent_daily_v4.0.csv"}
     out = {}
     for hemisphere, url in urls.items():
         text = await get_text(url); rows = []
@@ -151,19 +150,12 @@ async def nsidc_ice() -> dict[str, Any]:
             if not row or not row[0].strip().isdigit(): continue
             try: rows.append({"year": int(row[0]), "month": int(row[1]), "day": int(row[2]), "extent_million_km2": float(row[3])})
             except (ValueError, IndexError): continue
-        if rows:
-            latest = rows[-1]
-            out[hemisphere] = {"latest": latest, "rows": rows[-365:]}
+        if rows: out[hemisphere] = {"latest": rows[-1], "rows": rows[-365:]}
     if not out: raise RuntimeError("NSIDC Sea Ice Index returned no usable data")
     return {"source": "NSIDC / NOAA Sea Ice Index v4", "status": "ok", "updated": utc_now(), "unit": "million km²", "data": out, "baseline": "1981-2010 climatology available from NSIDC"}
 
 async def source_status() -> dict[str, Any]:
-    jobs = [
-        ("temperature", nasa_global_temperature), ("copernicus", copernicus_climate_pulse), ("co2", noaa_co2),
-        ("earthquakes", usgs_earthquakes), ("legnica", legnica_weather), ("neo", cneos_close_approaches),
-        ("fires_volcanoes", nasa_eonet_events), ("space_weather", noaa_space_weather), ("biodiversity", gbif_biodiversity),
-        ("ocean_indicator", noaa_ocean_indicator), ("ice", nsidc_ice),
-    ]
+    jobs = [("temperature", nasa_global_temperature), ("copernicus", copernicus_climate_pulse), ("co2", noaa_co2), ("earthquakes", usgs_earthquakes), ("legnica", legnica_weather), ("neo", cneos_close_approaches), ("fires_volcanoes", nasa_eonet_events), ("space_weather", noaa_space_weather), ("biodiversity", gbif_biodiversity), ("ocean_indicator", noaa_ocean_indicator), ("ice", nsidc_ice)]
     async def run(name: str, fn):
         try: return name, await fn()
         except Exception as exc: return name, {"source": name, "status": "error", "error_type": type(exc).__name__, "error": str(exc), "updated": utc_now()}
