@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
@@ -7,6 +8,7 @@ import httpx
 
 
 NASA_POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
+MAX_CONCURRENT_REQUESTS = 5
 
 
 class DataSourceError(RuntimeError):
@@ -58,18 +60,29 @@ async def fetch_nasa_power_temperature_points(
     start_year: int,
     end_year: int,
 ) -> dict[str, Any]:
-    """Fetch the same temperature series for multiple named representative points."""
-    results: dict[str, Any] = {}
-    for key, point in points.items():
-        try:
-            results[key] = await fetch_nasa_power_temperature(
-                latitude=float(point["latitude"]),
-                longitude=float(point["longitude"]),
-                start_year=start_year,
-                end_year=end_year,
-            )
-        except DataSourceError as exc:
-            results[key] = {"error": str(exc), "location": point}
+    """Fetch the same temperature series for multiple named representative points.
+
+    Requests are performed concurrently with a small semaphore limit so regional
+    analyses are faster without creating an uncontrolled burst of API traffic.
+    """
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+    async def fetch_one(key: str, point: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        async with semaphore:
+            try:
+                result = await fetch_nasa_power_temperature(
+                    latitude=float(point["latitude"]),
+                    longitude=float(point["longitude"]),
+                    start_year=start_year,
+                    end_year=end_year,
+                )
+                return key, result
+            except (DataSourceError, KeyError, TypeError, ValueError) as exc:
+                return key, {"error": str(exc), "location": point}
+
+    pairs = await asyncio.gather(*(fetch_one(key, point) for key, point in points.items()))
+    results = dict(pairs)
+
     return {
         "provider": "NASA POWER",
         "period": {"start": start_year, "end": end_year},
