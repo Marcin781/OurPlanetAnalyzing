@@ -13,7 +13,7 @@ from cities import VOIVODESHIP_CAPITALS
 
 app = FastAPI(
     title="OurPlanetAnalyzing API",
-    version="1.5.0",
+    version="1.5.1",
     description="Analiza klimatu, srodowiska i danych geofizycznych z weryfikowalnym zrodlem danych.",
 )
 
@@ -25,7 +25,7 @@ class AnalyzeRequest(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     response: str
-    risk_level: Literal["niski", "umiarkowany", "wysoki"]
+    risk_level: Literal["brak_oceny", "niski", "umiarkowany", "wysoki"]
     recommendations: list[str]
     sources: list[str]
     data: dict
@@ -122,7 +122,8 @@ async def build_regional_temperature(points: dict, region_name: str) -> dict:
 async def build_analysis(question: str) -> tuple[str, str, list[str], dict, list[str]]:
     normalized = question.lower()
     detected = [label for keyword, label in KEYWORD_SIGNALS.items() if keyword in normalized]
-    risk_level: Literal["niski", "umiarkowany", "wysoki"] = "wysoki" if len(detected) >= 2 else "umiarkowany" if detected else "niski"
+    # Keyword matches classify the topic only. They are not a validated risk model.
+    risk_level: Literal["brak_oceny", "niski", "umiarkowany", "wysoki"] = "brak_oceny"
     recommendations = [
         "Porownaj dane z co najmniej dwoch niezaleznych zrodel.",
         "Sprawdz trend w czasie, a nie tylko pojedynczy odczyt.",
@@ -161,7 +162,7 @@ async def build_analysis(question: str) -> tuple[str, str, list[str], dict, list
 
     if data.get("live_data") and data.get("region") == "Polska":
         valid = [v for v in data["points"].values() if v.get("mean") is not None]
-        response = f"Analiza temperatury Polski dla 16 wojewodztw. Pobrano rzeczywiste dane z NASA POWER za okres 2019-2025. Zastosowano po jednym punkcie reprezentatywnym na wojewodztwo; wynik nie jest jeszcze srednia powierzchniowa. Liczba poprawnie pobranych wojewodztw: {len(valid)}/16."
+        response = f"Analiza temperatury Polski dla 16 wojewodztw. Pobrano rzeczywiste dane z NASA POWER za okres 2019-2025. Zastosowano po jednym punkcie reprezentatywnym na województwo; wynik nie jest jeszcze srednia powierzchniowa. Liczba poprawnie pobranych wojewodztw: {len(valid)}/16."
     elif data.get("live_data") and data.get("region") == "Europa Środkowa i Wschodnia":
         valid = [v for v in data["points"].values() if v.get("mean") is not None]
         response = f"Analiza temperatury Europy Środkowej i Wschodniej. Pobrano rzeczywiste dane z NASA POWER dla {len(valid)}/{len(CENTRAL_EASTERN_EUROPE)} punktów reprezentatywnych za okres 2019-2025. Trendy są liczone z rocznych średnich dla każdego punktu. Wynik nie jest jeszcze średnią powierzchniową regionu."
