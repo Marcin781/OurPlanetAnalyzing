@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -13,7 +13,7 @@ from cities import VOIVODESHIP_CAPITALS
 
 app = FastAPI(
     title="OurPlanetAnalyzing API",
-    version="1.5.1",
+    version="1.5.2",
     description="Analiza klimatu, srodowiska i danych geofizycznych z weryfikowalnym zrodlem danych.",
 )
 
@@ -21,6 +21,14 @@ app = FastAPI(
 class AnalyzeRequest(BaseModel):
     question: str = Field(..., min_length=3, examples=["Jak zmieniala sie temperatura w Polsce i wojewodztwach?"], description="Pytanie lub temat analizy dotyczacy stanu planety.")
     output_format: Literal["json", "markdown"] = Field("json")
+
+
+class AgentRequest(BaseModel):
+    question: str = Field(..., min_length=3, max_length=4000, description="Pytanie dla Planet Agenta.")
+
+
+class AgentResponse(BaseModel):
+    answer: str
 
 
 class AnalyzeResponse(BaseModel):
@@ -183,6 +191,18 @@ def home() -> str:
 async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     response, risk_level, recommendations, data, sources = await build_analysis(request.question)
     return AnalyzeResponse(response=response, risk_level=risk_level, recommendations=recommendations, sources=sources, data=data, generated_at=datetime.now(timezone.utc))
+
+
+@app.post("/agent/analyze", response_model=AgentResponse)
+async def agent_analyze(request: AgentRequest) -> AgentResponse:
+    """Run the Planet Agent; the existing deterministic API remains independent of the API key."""
+    from planet_agent import run_planet_agent
+
+    try:
+        answer = await run_planet_agent(request.question)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return AgentResponse(answer=answer)
 
 
 @app.post("/generate-report", response_model=ReportResponse)
