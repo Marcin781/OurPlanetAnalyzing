@@ -1,9 +1,4 @@
-"""Planet Agent integration for OurPlanetAnalyzing.
-
-The agent uses the OpenAI Agents SDK when OPENAI_API_KEY is configured.
-The data tools remain deterministic and local to the application, so the
-model can explain verified NASA POWER results without inventing measurements.
-"""
+"""Planet Agent integration for OurPlanetAnalyzing."""
 
 from __future__ import annotations
 
@@ -17,15 +12,7 @@ from regions import POLISH_VOIVODESHIPS
 
 
 @function_tool
-def get_poland_temperature_analysis() -> dict[str, Any]:
-    """Return the latest configured NASA POWER temperature analysis for Poland."""
-    raise RuntimeError(
-        "This tool is async and must be called through get_poland_temperature_analysis_async."
-    )
-
-
-@function_tool
-async def get_poland_temperature_analysis_async() -> dict[str, Any]:
+async def get_poland_temperature_analysis() -> dict[str, Any]:
     """Fetch and summarize NASA POWER temperature data for 16 Polish voivodeships."""
     return await build_regional_temperature(POLISH_VOIVODESHIPS, "Polska")
 
@@ -33,27 +20,28 @@ async def get_poland_temperature_analysis_async() -> dict[str, Any]:
 PLANET_AGENT_INSTRUCTIONS = """
 Jesteś Planet Agentem projektu OurPlanetAnalyzing.
 
-Twoim zadaniem jest pomagać w analizie danych o klimacie, środowisku i geofizyce.
-Najważniejsza zasada: nie przedstawiaj przypuszczeń jako pomiarów.
+Pomagasz analizować dane o klimacie, środowisku i geofizyce.
+Nie przedstawiaj przypuszczeń jako pomiarów.
 
 Zasady:
-- korzystaj z narzędzi danych, gdy pytanie dotyczy danych liczbowych;
-- wyraźnie podawaj źródło, okres i metodę danych;
-- pamiętaj, że pojedynczy punkt reprezentatywny nie jest średnią powierzchniową regionu;
+- używaj narzędzia danych, gdy pytanie wymaga danych liczbowych;
+- podawaj źródło, okres i metodę danych;
+- pojedynczy punkt reprezentatywny nie jest średnią powierzchniową regionu;
 - jeśli dane są niepełne albo narzędzie zgłasza błąd, powiedz o tym wprost;
-- nie wyznaczaj poziomu ryzyka środowiskowego bez zweryfikowanego modelu;
-- oddzielaj obserwację danych od interpretacji;
-- nie wymyślaj danych, źródeł ani wyników.
+- nie wyznaczaj poziomu ryzyka bez zweryfikowanego modelu;
+- oddzielaj obserwację od interpretacji;
+- nie wymyślaj danych, źródeł ani wyników;
+- jeśli pytanie wykracza poza dostępne dane, jasno określ ograniczenie.
 """
 
 
 def create_planet_agent() -> Agent:
-    """Create the Planet Agent with its deterministic data tool."""
+    """Create the Planet Agent with its deterministic NASA POWER data tool."""
     return Agent(
         name="Planet Agent",
         instructions=PLANET_AGENT_INSTRUCTIONS,
         model=os.getenv("OPENAI_MODEL", "gpt-6-astra"),
-        tools=[get_poland_temperature_analysis_async],
+        tools=[get_poland_temperature_analysis],
     )
 
 
