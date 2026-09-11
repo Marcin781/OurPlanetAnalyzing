@@ -2,20 +2,41 @@ import json
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points
 from regions import CENTRAL_EASTERN_EUROPE, POLISH_VOIVODESHIPS
 from cities import VOIVODESHIP_CAPITALS
+from security_guard import inspect_request, security_summary
 
 
 app = FastAPI(
     title="OurPlanetAnalyzing API",
-    version="1.5.2",
+    version="1.6.0",
     description="Analiza klimatu, srodowiska i danych geofizycznych z weryfikowalnym zrodlem danych.",
 )
+
+
+@app.middleware("http")
+async def security_guard_middleware(request: Request, call_next):
+    """Apply deterministic, high-confidence request blocking before routing."""
+    if request.method != "OPTIONS":
+        findings = inspect_request(request.url.path, request.url.query, request.method)
+        blocking = [finding for finding in findings if finding.action == "block"]
+        if blocking:
+            finding = blocking[0]
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": "Request blocked by Security Guard",
+                    "event_id": finding.event_id,
+                    "category": finding.category,
+                    "severity": finding.severity,
+                },
+            )
+    return await call_next(request)
 
 
 class AnalyzeRequest(BaseModel):
@@ -130,7 +151,6 @@ async def build_regional_temperature(points: dict, region_name: str) -> dict:
 async def build_analysis(question: str) -> tuple[str, str, list[str], dict, list[str]]:
     normalized = question.lower()
     detected = [label for keyword, label in KEYWORD_SIGNALS.items() if keyword in normalized]
-    # Keyword matches classify the topic only. They are not a validated risk model.
     risk_level: Literal["brak_oceny", "niski", "umiarkowany", "wysoki"] = "brak_oceny"
     recommendations = [
         "Porownaj dane z co najmniej dwoch niezaleznych zrodel.",
@@ -203,6 +223,12 @@ async def agent_analyze(request: AgentRequest) -> AgentResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return AgentResponse(answer=answer)
+
+
+@app.get("/security/status")
+def security_status() -> dict:
+    """Return non-sensitive Security Guard telemetry."""
+    return security_summary()
 
 
 @app.post("/generate-report", response_model=ReportResponse)
