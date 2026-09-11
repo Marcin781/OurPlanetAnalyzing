@@ -2,133 +2,29 @@
   "openapi": "3.1.0",
   "info": {
     "title": "OurPlanetAnalyzing API",
-    "description": "Aplikacja do demonstracyjnej analizy klimatu, srodowiska i danych geofizycznych.",
-    "version": "1.1.0"
+    "description": "Analiza klimatu, srodowiska i danych geofizycznych z weryfikowalnym zrodlem danych.",
+    "version": "1.6.0"
   },
   "paths": {
-    "/analyze": {
-      "post": {
-        "summary": "Analyze",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnalyzeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AnalyzeResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/generate-report": {
-      "post": {
-        "summary": "Generate Report",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnalyzeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReportResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/status": {
-      "get": {
-        "summary": "Status",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StatusResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    "/analyze": {"post": {"summary": "Analyze", "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/AnalyzeRequest"}}}, "required": true}, "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AnalyzeResponse"}}}}, "422": {"description": "Validation Error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}},
+    "/agent/analyze": {"post": {"summary": "Agent Analyze", "description": "Run the Planet Agent; the existing deterministic API remains independent of the API key.", "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/AgentRequest"}}}, "required": true}, "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AgentResponse"}}}}, "422": {"description": "Validation Error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}},
+    "/security/status": {"get": {"summary": "Security Status", "description": "Return non-sensitive Security Guard telemetry.", "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"type": "object"}}}}}}},
+    "/generate-report": {"post": {"summary": "Generate Report", "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/AnalyzeRequest"}}}, "required": true}, "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportResponse"}}}}, "422": {"description": "Validation Error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}},
+    "/poland/voivodeships/temperature": {"get": {"summary": "Poland Voivodeships Temperature", "description": "Return live NASA POWER temperature summaries for all 16 Polish voivodeships.", "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"type": "object"}}}}}}},
+    "/poland/voivodeship-capitals/temperature": {"get": {"summary": "Voivodeship Capitals Temperature", "description": "Return live NASA POWER temperature summaries for 18 Polish voivodeship-capital cities.", "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"type": "object"}}}}}}},
+    "/central-eastern-europe/temperature": {"get": {"summary": "Central Eastern Europe Temperature", "description": "Return live NASA POWER temperature summaries for Central and Eastern Europe.", "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"type": "object"}}}}}}},
+    "/status": {"get": {"summary": "Status", "responses": {"200": {"description": "Successful Response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/StatusResponse"}}}}}}}
   },
   "components": {
     "schemas": {
-      "AnalyzeRequest": {
-        "type": "object",
-        "required": ["question"],
-        "properties": {
-          "question": {
-            "type": "string",
-            "minLength": 3,
-            "description": "Pytanie lub temat analizy dotyczacy stanu planety."
-          },
-          "output_format": {
-            "type": "string",
-            "enum": ["json", "markdown"],
-            "default": "json"
-          }
-        }
-      },
-      "AnalyzeResponse": {
-        "type": "object",
-        "required": ["response", "risk_level", "recommendations", "sources", "generated_at"],
-        "properties": {
-          "response": {"type": "string"},
-          "risk_level": {"type": "string", "enum": ["niski", "umiarkowany", "wysoki"]},
-          "recommendations": {"type": "array", "items": {"type": "string"}},
-          "sources": {"type": "array", "items": {"type": "string"}},
-          "generated_at": {"type": "string", "format": "date-time"}
-        }
-      },
-      "ReportResponse": {
-        "type": "object",
-        "required": ["report_id", "format", "status", "summary", "content", "generated_at"],
-        "properties": {
-          "report_id": {"type": "string"},
-          "format": {"type": "string", "enum": ["json", "markdown"]},
-          "status": {"type": "string", "const": "generated"},
-          "summary": {"type": "string"},
-          "content": {"type": "string"},
-          "generated_at": {"type": "string", "format": "date-time"}
-        }
-      },
-      "StatusResponse": {
-        "type": "object",
-        "required": ["status", "app_name", "version", "generated_at"],
-        "properties": {
-          "status": {"type": "string", "const": "ok"},
-          "app_name": {"type": "string"},
-          "version": {"type": "string"},
-          "generated_at": {"type": "string", "format": "date-time"}
-        }
-      }
+      "AnalyzeRequest": {"type": "object", "required": ["question"], "properties": {"question": {"type": "string", "minLength": 3, "examples": ["Jak zmieniala sie temperatura w Polsce i wojewodztwach?"], "description": "Pytanie lub temat analizy dotyczacy stanu planety."}, "output_format": {"type": "string", "enum": ["json", "markdown"], "default": "json"}}},
+      "AgentRequest": {"type": "object", "required": ["question"], "properties": {"question": {"type": "string", "minLength": 3, "maxLength": 4000, "description": "Pytanie dla Planet Agenta."}}},
+      "AgentResponse": {"type": "object", "required": ["answer"], "properties": {"answer": {"type": "string"}}},
+      "AnalyzeResponse": {"type": "object", "required": ["response", "risk_level", "recommendations", "sources", "data", "generated_at"], "properties": {"response": {"type": "string"}, "risk_level": {"type": "string", "enum": ["brak_oceny", "niski", "umiarkowany", "wysoki"]}, "recommendations": {"type": "array", "items": {"type": "string"}}, "sources": {"type": "array", "items": {"type": "string"}}, "data": {"type": "object"}, "generated_at": {"type": "string", "format": "date-time"}}},
+      "ReportResponse": {"type": "object", "required": ["report_id", "format", "status", "summary", "content", "generated_at"], "properties": {"report_id": {"type": "string"}, "format": {"type": "string", "enum": ["json", "markdown"]}, "status": {"type": "string", "const": "generated"}, "summary": {"type": "string"}, "content": {"type": "string"}, "generated_at": {"type": "string", "format": "date-time"}}},
+      "StatusResponse": {"type": "object", "required": ["status", "app_name", "version", "generated_at"], "properties": {"status": {"type": "string", "const": "ok"}, "app_name": {"type": "string"}, "version": {"type": "string"}, "generated_at": {"type": "string", "format": "date-time"}}},
+      "HTTPValidationError": {"type": "object", "properties": {"detail": {"type": "array", "items": {"$ref": "#/components/schemas/ValidationError"}}}},
+      "ValidationError": {"type": "object", "required": ["loc", "msg", "type"], "properties": {"loc": {"type": "array", "items": {}}, "msg": {"type": "string"}, "type": {"type": "string"}}}
     }
   }
 }
