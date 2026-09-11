@@ -1,18 +1,42 @@
 # OurPlanetAnalyzing
 
-OurPlanetAnalyzing is a small FastAPI web application and API prototype for exploring climate, environmental and geophysical topics.
+OurPlanetAnalyzing is a FastAPI application and API for exploring climate, environmental and geophysical topics with explicit source metadata and a defensive application-security layer.
 
-> **Current status:** prototype. The analysis engine currently uses deterministic keyword-based logic. It does **not** yet fetch live NASA/ESA/WMO/IPCC data and does not claim to provide scientific conclusions.
+> **Current status:** working engineering prototype. Live NASA POWER temperature data is available for representative analysis points. Results are not automatically treated as scientific forecasts or area-weighted regional measurements.
 
 ## Features
 
 - Web interface at `/`
-- `POST /analyze` for topic analysis
+- `POST /analyze` for deterministic topic analysis
 - `POST /generate-report` for JSON or Markdown reports
+- `POST /agent/analyze` for the Planet Agent
 - `GET /status` health/status endpoint
+- `GET /security/status` non-sensitive Security Guard telemetry
 - OpenAPI documentation at `/docs`
+- Live NASA POWER temperature retrieval for Poland, Polish voivodeships, voivodeship-capital cities and Central/Eastern Europe
 - Automated smoke tests and pytest
-- Docker and Docker Compose support
+- Docker support
+- Non-root container user and container health check
+- Deterministic Security Guard for high-confidence request probes
+
+## Planet Agent
+
+The Planet Agent uses the OpenAI Agents SDK and defaults to the configured `OPENAI_MODEL` value, currently `gpt-5.6-luna`. It has a deterministic NASA POWER data tool and is instructed to distinguish observations from interpretation, disclose data limitations and avoid inventing measurements or risk scores.
+
+Set the API key only in the runtime environment; never commit it to GitHub:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_MODEL=gpt-5.6-luna
+```
+
+## Security Guard
+
+The application includes a defensive, deterministic request guard. It can block a limited set of high-confidence probes such as path traversal, common XSS/SQL-injection patterns, selected SSRF indicators and selected command-injection probes.
+
+The guard is intentionally **not** described as protection against every known attack. It is a baseline layer. Production hardening should also include TLS/WAF/rate limiting at the edge, strong authentication and authorization, dependency/container scanning, secret management, centralized immutable logs, alerting, backups and incident-response procedures.
+
+The Security Guard does not give an AI model direct destructive control over the application. Security decisions are bounded by deterministic policy.
 
 ## Local development
 
@@ -42,8 +66,6 @@ Then open `http://127.0.0.1:8000` or `http://127.0.0.1:8000/docs`.
 docker compose up --build -d
 ```
 
-The application is available at `http://127.0.0.1:8000`.
-
 Check health:
 
 ```bash
@@ -63,25 +85,22 @@ python -m pytest -q
 python smoke_test.py
 ```
 
-## OpenAPI
+CI compiles all application modules, runs pytest and the smoke test, and validates that generated OpenAPI JSON/YAML can be parsed.
 
-Regenerate the committed OpenAPI files:
+## Data methodology
 
-```bash
-python generate_openapi_files.py
-```
-
-The CI workflow verifies that generated OpenAPI files are reproducible and that tests pass.
+NASA POWER temperature data is fetched live for the configured analysis points for 2019–2025. A representative point is not an area-weighted polygon average. The application exposes retrieval timestamps and source URLs where applicable.
 
 ## Roadmap
 
-1. Connect verified public environmental data sources.
-2. Add source metadata, timestamps and data-quality indicators.
-3. Separate data acquisition, analysis and reporting layers.
-4. Add real trend analysis instead of keyword detection.
-5. Add reproducible reports and visualizations.
-6. Add stronger integration tests for external data providers.
+1. Add more verified public environmental sources and cross-source comparison.
+2. Add explicit data-quality indicators and provenance records.
+3. Replace representative regional points with validated grid/polygon aggregation where appropriate.
+4. Add reproducible visualizations and trend-analysis methods with validation.
+5. Strengthen external-provider integration tests and resilience.
+6. Extend the Security Guard with policy-based rate limiting, centralized audit logging and external edge controls.
+7. Later: build the separate defensive Cyber Agent / threat-hunting layer.
 
 ## Scientific-use disclaimer
 
-This project is an engineering prototype. Until verified live data sources and validated analytical methods are implemented, its output should not be treated as scientific measurement, forecasting or environmental advice.
+This project is an engineering prototype. Live data retrieval does not by itself make the analysis a validated scientific forecast or environmental advisory service. Interpretations must respect the stated source, period, spatial method and uncertainty limitations.
