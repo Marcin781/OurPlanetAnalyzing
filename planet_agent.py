@@ -40,7 +40,7 @@ def create_planet_agent() -> Agent:
     return Agent(
         name="Planet Agent",
         instructions=PLANET_AGENT_INSTRUCTIONS,
-        model=os.getenv("OPENAI_MODEL", "gpt-6-astra"),
+        model=os.getenv("OPENAI_MODEL", "gpt-5.6-luna"),
         tools=[get_poland_temperature_analysis],
     )
 
