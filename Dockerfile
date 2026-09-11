@@ -13,6 +13,7 @@ RUN python -m pip install --upgrade pip \
 COPY app.py .
 COPY planet_agent.py .
 COPY data_sources.py .
+COPY security_guard.py .
 COPY regions.py .
 COPY cities.py .
 COPY analysis ./analysis
