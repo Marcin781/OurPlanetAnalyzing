@@ -1,0 +1,77 @@
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: rg-ourplanet-analyzing
+  LOCATION: polandcentral
+  CONTAINER_ENVIRONMENT: env-ourplanet-analyzing
+  CONTAINER_APP: ourplanet-analyzing
+  TARGET_PORT: "8000"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: azure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Container Apps extension
+        run: az extension add --name containerapp --upgrade
+
+      - name: Register required resource providers
+        run: |
+          az provider register --namespace Microsoft.App
+          az provider register --namespace Microsoft.OperationalInsights
+
+      - name: Create resource group
+        run: az group create --name "$RESOURCE_GROUP" --location "$LOCATION"
+
+      - name: Deploy application
+        run: |
+          az containerapp up \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --location "$LOCATION" \
+            --environment "$CONTAINER_ENVIRONMENT" \
+            --source . \
+            --ingress external \
+            --target-port "$TARGET_PORT"
+
+      - name: Configure application secrets
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          test -n "$OPENAI_API_KEY"
+          az containerapp secret set \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --secrets openai-api-key="$OPENAI_API_KEY"
+          az containerapp update \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --set-env-vars \
+              OPENAI_MODEL=gpt-5.6-luna \
+              OPENAI_API_KEY=secretref:openai-api-key
+
+      - name: Show deployment URL
+        run: |
+          az containerapp show \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv
