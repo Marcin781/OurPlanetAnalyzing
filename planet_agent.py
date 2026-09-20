@@ -11,10 +11,15 @@ from app import build_regional_temperature
 from regions import POLISH_VOIVODESHIPS
 
 
+async def get_poland_temperature_analysis_data() -> dict[str, Any]:
+    """Fetch and summarize NASA POWER temperature data for 16 Polish voivodeships."""
+    return await build_regional_temperature(POLISH_VOIVODESHIPS, "Polska")
+
+
 @function_tool
 async def get_poland_temperature_analysis() -> dict[str, Any]:
     """Fetch and summarize NASA POWER temperature data for 16 Polish voivodeships."""
-    return await build_regional_temperature(POLISH_VOIVODESHIPS, "Polska")
+    return await get_poland_temperature_analysis_data()
 
 
 PLANET_AGENT_INSTRUCTIONS = """
