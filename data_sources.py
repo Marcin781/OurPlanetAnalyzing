@@ -9,10 +9,35 @@ import httpx
 
 NASA_POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
 MAX_CONCURRENT_REQUESTS = 5
+MISSING_VALUE = -999.0
 
 
 class DataSourceError(RuntimeError):
     pass
+
+
+def assess_monthly_completeness(data: dict[str, Any], start_year: int, end_year: int) -> dict[str, Any]:
+    """Assess expected monthly observations without treating NASA missing sentinels as measurements."""
+    expected = max(0, (end_year - start_year + 1) * 12)
+    valid = 0
+    missing = 0
+
+    for value in data.values():
+        if isinstance(value, (int, float)):
+            if float(value) == MISSING_VALUE:
+                missing += 1
+            else:
+                valid += 1
+
+    observed = valid + missing
+    missing += max(0, expected - observed)
+    return {
+        "expected_months": expected,
+        "valid_months": valid,
+        "missing_months": missing,
+        "completeness_ratio": round(valid / expected, 3) if expected else None,
+        "quality": "complete" if expected and valid == expected else "partial" if valid else "no_valid_data",
+    }
 
 
 async def fetch_nasa_power_temperature(
@@ -42,6 +67,7 @@ async def fetch_nasa_power_temperature(
     properties = payload.get("properties", {})
     parameter = properties.get("parameter", {})
     temperature = parameter.get("T2M", {})
+    quality = assess_monthly_completeness(temperature, start_year, end_year)
 
     return {
         "provider": "NASA POWER",
@@ -50,6 +76,7 @@ async def fetch_nasa_power_temperature(
         "location": {"latitude": latitude, "longitude": longitude},
         "period": {"start": start_year, "end": end_year},
         "data": temperature,
+        "data_quality": quality,
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
         "source_url": str(response.url),
     }
