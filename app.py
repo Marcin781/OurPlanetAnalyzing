@@ -90,10 +90,14 @@ KEYWORD_SIGNALS = {
 
 
 def summarize_series(values_map: dict) -> dict:
-    values = [float(v) for v in values_map.values() if isinstance(v, (int, float))]
+    values = [
+        float(v)
+        for v in values_map.values()
+        if isinstance(v, (int, float)) and float(v) != -999.0
+    ]
     years: dict[int, list[float]] = {}
     for key, value in values_map.items():
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, (int, float)) or float(value) == -999.0:
             continue
         text = str(key)
         try:
@@ -143,6 +147,7 @@ async def build_regional_temperature(points: dict, region_name: str) -> dict:
             "name": points[key].get("name", key),
             "location": result["location"],
             "source_url": result["source_url"],
+            "data_quality": result.get("data_quality"),
             **summary,
         }
     return output
@@ -177,7 +182,7 @@ async def build_analysis(question: str) -> tuple[str, str, list[str], dict, list
             if summary["observations"]:
                 data = {
                     "live_data": True, "provider": nasa["provider"], "parameter": nasa["parameter"], "unit": nasa["unit"],
-                    "location": nasa["location"], "period": nasa["period"], **summary,
+                    "location": nasa["location"], "period": nasa["period"], "data_quality": nasa.get("data_quality"), **summary,
                     "retrieved_at": nasa["retrieved_at"], "source_url": nasa["source_url"],
                     "method": "single representative point; not a regional spatial average",
                 }
@@ -190,7 +195,7 @@ async def build_analysis(question: str) -> tuple[str, str, list[str], dict, list
 
     if data.get("live_data") and data.get("region") == "Polska":
         valid = [v for v in data["points"].values() if v.get("mean") is not None]
-        response = f"Analiza temperatury Polski dla 16 wojewodztw. Pobrano rzeczywiste dane z NASA POWER za okres 2019-2025. Zastosowano po jednym punkcie reprezentatywnym na województwo; wynik nie jest jeszcze srednia powierzchniowa. Liczba poprawnie pobranych wojewodztw: {len(valid)}/16."
+        response = f"Analiza temperatury Polski dla 16 wojewodztw. Pobrano rzeczywiste dane z NASA POWER za okres 2019-2025. Zastosowano po jednym punkcie reprezentatywnym na wojewodztwo; wynik nie jest jeszcze srednia powierzchniowa. Liczba poprawnie pobranych wojewodztw: {len(valid)}/16."
     elif data.get("live_data") and data.get("region") == "Europa Środkowa i Wschodnia":
         valid = [v for v in data["points"].values() if v.get("mean") is not None]
         response = f"Analiza temperatury Europy Środkowej i Wschodniej. Pobrano rzeczywiste dane z NASA POWER dla {len(valid)}/{len(CENTRAL_EASTERN_EUROPE)} punktów reprezentatywnych za okres 2019-2025. Trendy są liczone z rocznych średnich dla każdego punktu. Wynik nie jest jeszcze średnią powierzchniową regionu."
@@ -204,7 +209,7 @@ async def build_analysis(question: str) -> tuple[str, str, list[str], dict, list
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def home() -> str:
-    return """<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OurPlanetAnalyzing</title><style>body{margin:0;font-family:Arial,sans-serif;background:#f4f7f6;color:#17211f}main{max-width:920px;margin:0 auto;padding:40px 18px}h1{margin:0 0 10px;font-size:34px}p{line-height:1.55}form{margin-top:24px;display:grid;gap:12px}textarea,select,button{font:inherit;border:1px solid #bdcbc7;border-radius:8px}textarea{min-height:130px;padding:12px;resize:vertical}select,button{padding:10px 12px}button{cursor:pointer;border-color:#205c50;background:#205c50;color:white;font-weight:700}pre{overflow:auto;white-space:pre-wrap;background:#10201d;color:#e8fff8;padding:16px;border-radius:8px;min-height:120px}</style></head><body><main><h1>OurPlanetAnalyzing</h1><p>Wpisz pytanie dotyczace klimatu, srodowiska albo geofizyki i uruchom analize.</p><form id="analysis-form"><textarea id="question" required minlength="3">Jak zmieniala sie temperatura w Polsce i wojewodztwach?</textarea><select id="output_format"><option value="json">JSON</option><option value="markdown">Markdown</option></select><button type="submit">Analizuj</button></form><h2>Wynik</h2><pre id="result">Czekam na pytanie...</pre></main><script>const form=document.getElementById("analysis-form"),result=document.getElementById("result");form.addEventListener("submit",async(e)=>{e.preventDefault();result.textContent="Analizuje...";try{const r=await fetch("/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:document.getElementById("question").value,output_format:document.getElementById("output_format").value})});result.textContent=JSON.stringify(await r.json(),null,2)}catch(e){result.textContent=JSON.stringify({error:"Nie udalo sie polaczyc z API."},null,2)}});</script></body></html>"""
+    return """<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OurPlanetAnalyzing</title><style>body{margin:0;font-family:Arial,sans-serif;background:#f4f7f6;color:#17211f}main{max-width:920px;margin:0 auto;padding:40px 18px}h1{margin:0 0 10px;font-size:34px}p{line-height:1.55}form{margin-top:24px;display:grid;gap:12px}textarea,select,button{font:inherit;border:1px solid #bdcbc7;border-radius:8px}textarea{min-height:130px;padding:12px;resize:vertical}select,button{padding:10px 12px}button{cursor:pointer;border-color:#205c50;background:#205c50;color:white;font-weight:700}pre{overflow:auto;white-space:pre-wrap;background:#10201d;color:#e8fff8;padding:16px;border-radius:8px;min-height:120px}</style></head><body><main><h1>OurPlanetAnalyzing</h1><p>Wpisz pytanie dotyczace klimatu, srodowiska albo geofizyki i uruchom analize.</p><form id="analysis-form"><textarea id="question" required minlength="3">Jak zmieniala sie temperatura w Polsce i wojewodztwach?</textarea><select id="output_format"><option value="json">JSON</option><option value="markdown">Markdown</option></select><button type="submit">Analizuj</button></form><h2>Wynik</h2><pre id="result">Czekam na pytanie...</pre></main></body></html>"""
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
