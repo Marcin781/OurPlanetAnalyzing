@@ -35,6 +35,27 @@ async def test_planet_agent_data_tool_exposes_provenance(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_planet_agent_data_tool_does_not_call_network_in_unit_test(monkeypatch):
+    async def fake_build(points, region_name):
+        return {
+            "live_data": True,
+            "provider": "NASA POWER",
+            "region": region_name,
+            "period": {"start": "2019-01", "end": "2025-12"},
+            "method": "one representative NASA POWER point per region; not an area-weighted polygon average",
+            "points": {},
+            "retrieved_at": "2026-09-20T00:00:00+00:00",
+        }
+
+    monkeypatch.setattr("planet_agent.build_regional_temperature", fake_build)
+
+    data = await get_poland_temperature_analysis_data()
+
+    assert data["region"] == "Polska"
+    assert data["points"] == {}
+
+
+@pytest.mark.asyncio
 async def test_planet_agent_requires_api_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
