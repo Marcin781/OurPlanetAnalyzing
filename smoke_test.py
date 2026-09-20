@@ -1,10 +1,11 @@
+import asyncio
 import json
 
 from app import AnalyzeRequest, analyze, app, generate_report, security_status, status
 from fastapi.testclient import TestClient
 
 
-def main() -> None:
+async def run_smoke_checks() -> None:
     schema = app.openapi()
     expected_paths = {"/analyze", "/generate-report", "/status", "/security/status", "/agent/analyze"}
     missing_paths = expected_paths.difference(schema["paths"])
@@ -13,16 +14,16 @@ def main() -> None:
         raise RuntimeError(f"Missing OpenAPI paths: {sorted(missing_paths)}")
 
     request = AnalyzeRequest(
-        question="Sprawdz CO2, klimat i temperature",
+        question="Sprawdz ogolny stan srodowiska",
         output_format="json",
     )
-    analysis = analyze(request)
-    report_json = generate_report(request)
+    analysis = await analyze(request)
+    report_json = await generate_report(request)
     markdown_request = AnalyzeRequest(
-        question="Sprawdz CO2, klimat i temperature",
+        question="Sprawdz ogolny stan srodowiska",
         output_format="markdown",
     )
-    report_markdown = generate_report(markdown_request)
+    report_markdown = await generate_report(markdown_request)
     health = status()
     security = security_status()
 
@@ -61,6 +62,9 @@ def main() -> None:
     if "event_id" not in blocked_response.json():
         raise RuntimeError("Security Guard response is missing an event id")
 
+
+def main() -> None:
+    asyncio.run(run_smoke_checks())
     print("Smoke test passed")
 
 
