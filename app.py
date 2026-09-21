@@ -10,7 +10,8 @@ from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_na
 from regions import CENTRAL_EASTERN_EUROPE, POLISH_VOIVODESHIPS
 from cities import VOIVODESHIP_CAPITALS
 from security_guard import inspect_request, security_summary
-from planet_journal import build_planet_journal
+from planet_journal import build_planet_journal, render_weekly_journal_markdown
+from analysis.trends import build_signal_summary
 
 
 app = FastAPI(
@@ -144,12 +145,16 @@ async def build_regional_temperature(points: dict, region_name: str) -> dict:
             output["points"][key] = result
             continue
         summary = summarize_series(result["data"])
+        yearly_records = [{"date": year, "temperature_avg": value} for year, value in summary["yearly_mean"].items()]
+        signals = build_signal_summary(yearly_records, anomaly_threshold=2.0)
         output["points"][key] = {
             "name": points[key].get("name", key),
             "location": result["location"],
             "source_url": result["source_url"],
             "data_quality": result.get("data_quality"),
             **summary,
+            "anomalies": signals["anomalies"],
+            "signal_summary": signals,
         }
     return output
 
