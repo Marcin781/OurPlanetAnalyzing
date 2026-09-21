@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points
@@ -12,6 +12,11 @@ from cities import VOIVODESHIP_CAPITALS
 from security_guard import inspect_request, security_summary
 from planet_journal import build_planet_journal, render_weekly_journal_markdown
 from analysis.trends import build_signal_summary
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest_webmanifest():
+    return FileResponse("manifest.webmanifest", media_type="application/manifest+json")
 
 
 app = FastAPI(
