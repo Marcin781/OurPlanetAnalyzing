@@ -1,4 +1,4 @@
-from planet_journal import build_planet_journal
+from planet_journal import build_planet_journal, render_weekly_journal_markdown
 
 
 def _analysis():
@@ -64,3 +64,12 @@ def test_journal_exposes_anomaly_signals():
     assert result["anomalies"]["count"] == 1
     assert result["anomalies"]["items"][0]["point"] == "A"
     assert any("odchyleń" in item for item in result["observations"])
+
+
+def test_weekly_markdown_contains_provenance_and_limitations():
+    journal = build_planet_journal(_analysis())
+    markdown = render_weekly_journal_markdown(journal)
+    assert "# Dziennik Planety" in markdown
+    assert "NASA POWER" in markdown
+    assert "Metoda i ograniczenia" in markdown
+    assert "https://example.test/a" in markdown
