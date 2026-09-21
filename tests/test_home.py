@@ -11,3 +11,10 @@ def test_home_contains_planet_journal_ui():
     assert response.status_code == 200
     assert "Dziennik Planety" in response.text
     assert "/planet-journal" in response.text
+
+
+def test_manifest_is_served_as_webmanifest():
+    response = client.get("/manifest.webmanifest")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/manifest+json")
+    assert "Dziennik Planety" in response.text
