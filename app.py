@@ -241,7 +241,9 @@ async def planet_journal() -> dict:
     """Return a deterministic, source-aware Planet Journal entry for Poland."""
     analysis = await build_regional_temperature(POLISH_VOIVODESHIPS, "Polska")
     analysis["method"] = "one representative NASA POWER point per voivodeship; not an area-weighted polygon average"
-    return build_planet_journal(analysis, title="Dziennik Planety — Polska")
+    journal = build_planet_journal(analysis, title="Dziennik Planety — Polska")
+    journal["markdown"] = render_weekly_journal_markdown(journal)
+    return journal
 
 
 @app.get("/security/status")
