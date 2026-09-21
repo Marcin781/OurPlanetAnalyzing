@@ -12,6 +12,9 @@ RUN python -m pip install --upgrade pip \
 
 COPY app.py .
 COPY planet_agent.py .
+COPY planet_journal.py .
+COPY manifest.webmanifest .
+COPY sw.js .
 COPY data_sources.py .
 COPY security_guard.py .
 COPY regions.py .
