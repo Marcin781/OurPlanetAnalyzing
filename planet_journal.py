@@ -28,6 +28,15 @@ def build_planet_journal(
     ]
     rising = [item for item in trends if item.get("direction") == "wzrost"]
     falling = [item for item in trends if item.get("direction") == "spadek"]
+    anomalies = []
+    for name, point in valid_points:
+        point_anomalies = point.get("anomalies", [])
+        if isinstance(point_anomalies, list):
+            anomalies.extend(
+                {"point": name, **item}
+                for item in point_anomalies
+                if isinstance(item, dict)
+            )
 
     qualities = [
         point.get("data_quality")
@@ -48,6 +57,8 @@ def build_planet_journal(
         observations.append(f"Wzrost średniej rocznej od początku do końca okresu odnotowano w {len(rising)} punktach.")
     if falling:
         observations.append(f"Spadek średniej rocznej od początku do końca okresu odnotowano w {len(falling)} punktach.")
+    if anomalies:
+        observations.append(f"Wykryto {len(anomalies)} odchyleń przekraczających ustalony próg.")
     if not rising and not falling and valid_points:
         observations.append("W dostępnych punktach nie odnotowano jednoznacznego kierunku zmiany według zastosowanej reguły.")
 
@@ -79,5 +90,9 @@ def build_planet_journal(
             if isinstance(point.get("source_url"), str) and point.get("source_url")
         }),
         "data_quality": qualities,
+        "anomalies": {
+            "count": len(anomalies),
+            "items": anomalies,
+        },
         "limitations": limitations,
     }
