@@ -10,6 +10,7 @@ from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_na
 from regions import CENTRAL_EASTERN_EUROPE, POLISH_VOIVODESHIPS
 from cities import VOIVODESHIP_CAPITALS
 from security_guard import inspect_request, security_summary
+from planet_journal import build_planet_journal
 
 
 app = FastAPI(
@@ -228,6 +229,14 @@ async def agent_analyze(request: AgentRequest) -> AgentResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return AgentResponse(answer=answer)
+
+
+@app.get("/planet-journal")
+async def planet_journal() -> dict:
+    """Return a deterministic, source-aware Planet Journal entry for Poland."""
+    analysis = await build_regional_temperature(POLISH_VOIVODESHIPS, "Polska")
+    analysis["method"] = "one representative NASA POWER point per voivodeship; not an area-weighted polygon average"
+    return build_planet_journal(analysis, title="Dziennik Planety — Polska")
 
 
 @app.get("/security/status")
