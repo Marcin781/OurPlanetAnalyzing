@@ -1,0 +1,9 @@
+{
+  "name": "OurPlanetAnalyzing — Dziennik Planety",
+  "short_name": "Dziennik Planety",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef4f2",
+  "theme_color": "#10201d",
+  "description": "Source-aware climate and environmental journal."
+}
