@@ -13,6 +13,7 @@ def _analysis():
                 "trend": {"direction": "wzrost"},
                 "source_url": "https://example.test/a",
                 "data_quality": {"quality": "complete"},
+                "anomalies": [{"date": "2025-07", "value": 13.0, "deviation": 2.1}],
             },
             "B": {
                 "mean": 9.0,
@@ -56,3 +57,10 @@ def test_journal_handles_no_valid_points():
     })
     assert result["coverage"]["valid_points"] == 0
     assert result["source_urls"] == []
+
+
+def test_journal_exposes_anomaly_signals():
+    result = build_planet_journal(_analysis())
+    assert result["anomalies"]["count"] == 1
+    assert result["anomalies"]["items"][0]["point"] == "A"
+    assert any("odchyleń" in item for item in result["observations"])
