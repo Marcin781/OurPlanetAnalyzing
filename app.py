@@ -220,11 +220,11 @@ async def build_analysis(question: str) -> tuple[str, str, list[str], dict, list
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def home() -> str:
-    return """<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#10201d"><link rel="manifest" href="/manifest.webmanifest"><title>OurPlanetAnalyzing</title><style>body{margin:0;font-family:system-ui,sans-serif;background:#eef4f2;color:#17211f}main{max-width:920px;margin:auto;padding:28px 18px}h1{margin:0}.sub{color:#50635e}.card{background:white;border:1px solid #d6e0dd;border-radius:16px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.metric{padding:14px;background:#f5f8f7;border-radius:12px}.metric b{display:block;font-size:22px;margin-top:4px}button{font:inherit;padding:11px 14px;border:0;border-radius:10px;background:#205c50;color:white;font-weight:700}pre{white-space:pre-wrap;overflow:auto}</style></head><body><main><h1>🌍 OurPlanetAnalyzing</h1><p class="sub">Dziennik Planety · dane, trendy i anomalie</p><section class="card"><h2>📖 Dziennik Planety</h2><p id="status">Pobieram najnowsze dane…</p><div id="journal"></div></section><section class="card"><h2>🔎 Analiza</h2><form id="analysis-form"><textarea id="question" required minlength="3" style="width:100%;min-height:90px;box-sizing:border-box">Jak zmieniala sie temperatura w Polsce i województwach?</textarea><br><button type="submit">Analizuj</button></form><pre id="result"></pre></section></main><script>
+    return """<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#10201d"><link rel="manifest" href="/manifest.webmanifest"><title>OurPlanetAnalyzing</title><style>body{margin:0;font-family:system-ui,sans-serif;background:#eef4f2;color:#17211f}main{max-width:920px;margin:auto;padding:28px 18px}h1{margin:0}.sub{color:#50635e}.card{background:white;border:1px solid #d6e0dd;border-radius:16px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.metric{padding:14px;background:#f5f8f7;border-radius:12px}.metric b{display:block;font-size:22px;margin-top:4px}button{font:inherit;padding:11px 14px;border:0;border-radius:10px;background:#205c50;color:white;font-weight:700}pre{white-space:pre-wrap;overflow:auto}</style></head><body><main><h1>🌍 OurPlanetAnalyzing</h1><p class="sub">Dziennik Planety · dane, trendy i anomalie</p><section class="card"><h2>📖 Dziennik Planety</h2><p id="status">Pobieram najnowsze dane…</p><div id="journal"></div></section><section class="card"><h2>📍 Legnica</h2><p id="legnica-status">Pobieram lokalny profil środowiskowy…</p><div id="legnica"></div></section><section class="card"><h2>🔎 Analiza</h2><form id="analysis-form"><textarea id="question" required minlength="3" style="width:100%;min-height:90px;box-sizing:border-box">Jak zmieniala sie temperatura w Polsce i województwach?</textarea><br><button type="submit">Analizuj</button></form><pre id="result"></pre></section></main><script>
 const j=document.getElementById("journal"),s=document.getElementById("status");
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 async function load(){try{const r=await fetch("/planet-journal");if(!r.ok)throw 0;const d=await r.json();s.textContent="Źródło: "+d.provider+" · okres: "+d.period.start+"–"+d.period.end;j.innerHTML="<div class='grid'><div class='metric'>Punkty<b>"+d.coverage.valid_points+"/"+d.coverage.total_points+"</b></div><div class='metric'>Kompletne serie<b>"+d.coverage.complete_points+"</b></div><div class='metric'>Anomalie<b>"+d.anomalies.count+"</b></div></div><p>"+d.observations.map(esc).join("<br>")+"</p><h3>Ograniczenia</h3><ul>"+d.limitations.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul><h3>Źródła</h3><p>"+d.source_urls.map(esc).join("<br>")+"</p>"}catch(e){s.textContent="Nie udało się pobrać Dziennika Planety."}}
-document.getElementById("analysis-form").addEventListener("submit",async e=>{e.preventDefault();const r=document.getElementById("result");r.textContent="Analizuję…";try{const x=await fetch("/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:document.getElementById("question").value,output_format:"json"})});r.textContent=JSON.stringify(await x.json(),null,2)}catch(e){r.textContent="Błąd połączenia z API."}});load();</script><script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script></body></html>"""
+async function loadLegnica(){const el=document.getElementById("legnica"),st=document.getElementById("legnica-status");try{const r=await fetch("/legnica/environment");if(!r.ok)throw 0;const d=await r.json();const q=d.data_quality||{};st.textContent="NASA POWER · "+d.period.start+"–"+d.period.end;el.innerHTML="<div class=\"grid\"><div class=\"metric\">Średnia<b>"+esc(d.summary.mean)+" °C</b></div><div class=\"metric\">Min<b>"+esc(d.summary.min)+" °C</b></div><div class=\"metric\">Max<b>"+esc(d.summary.max)+" °C</b></div><div class=\"metric\">Jakość<b>"+esc(q.quality||"brak")+"</b></div></div><p>To profil klimatyczny punktu NASA POWER, a nie prognoza pogody.</p>"}catch(e){st.textContent="Nie udało się pobrać danych Legnicy."}};loadLegnica();document.getElementById("analysis-form").addEventListener("submit",async e=>{e.preventDefault();const r=document.getElementById("result");r.textContent="Analizuję…";try{const x=await fetch("/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:document.getElementById("question").value,output_format:"json"})});r.textContent=JSON.stringify(await x.json(),null,2)}catch(e){r.textContent="Błąd połączenia z API."}});load();</script><script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script></body></html>"""
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
@@ -242,6 +242,26 @@ async def agent_analyze(request: AgentRequest) -> AgentResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return AgentResponse(answer=answer)
+
+
+@app.get("/legnica/environment")
+async def legnica_environment() -> dict:
+    """Return a transparent NASA POWER temperature profile for Legnica."""
+    nasa = await fetch_nasa_power_temperature(latitude=51.2070, longitude=16.1619, start_year=2019, end_year=2025)
+    summary = summarize_series(nasa["data"])
+    return {
+        "place": "Legnica",
+        "location": nasa["location"],
+        "provider": nasa["provider"],
+        "parameter": nasa["parameter"],
+        "unit": nasa["unit"],
+        "period": nasa["period"],
+        "data_quality": nasa["data_quality"],
+        "summary": summary,
+        "source_url": nasa["source_url"],
+        "method": "single NASA POWER point near Legnica; climate profile, not a live weather forecast",
+        "retrieved_at": nasa["retrieved_at"],
+    }
 
 
 @app.get("/planet-journal")
