@@ -96,3 +96,38 @@ def build_planet_journal(
         },
         "limitations": limitations,
     }
+
+
+def render_weekly_journal_markdown(journal: dict[str, Any]) -> str:
+    """Render a compact weekly journal entry from already verified data."""
+    title = journal.get("title", "Dziennik Planety")
+    period = journal.get("period", {})
+    coverage = journal.get("coverage", {})
+    anomalies = journal.get("anomalies", {})
+    lines = [
+        f"# {title}",
+        "",
+        f"**Okres danych:** {period.get('start', 'brak')}–{period.get('end', 'brak')}",
+        f"**Źródło:** {journal.get('provider', 'nieznane')}",
+        "",
+        "## Co pokazują dane",
+    ]
+    lines.extend(f"- {item}" for item in journal.get("observations", []))
+    lines.extend([
+        "",
+        "## Jakość danych",
+        f"- Poprawne punkty: {coverage.get('valid_points', 0)}/{coverage.get('total_points', 0)}",
+        f"- Kompletne serie: {coverage.get('complete_points', 0)}",
+        f"- Częściowe serie: {coverage.get('partial_points', 0)}",
+        f"- Wykryte anomalie: {anomalies.get('count', 0)}",
+        "",
+        "## Metoda i ograniczenia",
+        f"- {journal.get('method', 'brak opisu metody')}",
+    ])
+    lines.extend(f"- {item}" for item in journal.get("limitations", []))
+    lines.extend([
+        "",
+        "## Źródła",
+    ])
+    lines.extend(f"- {url}" for url in journal.get("source_urls", []))
+    return "\n".join(lines)
