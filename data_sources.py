@@ -149,6 +149,37 @@ async def fetch_open_meteo_forecast(latitude: float, longitude: float, forecast_
     }
 
 
+
+async def fetch_open_meteo_recent_weather(latitude: float, longitude: float, days: int = 7) -> dict[str, Any]:
+    """Fetch recent daily weather used as an indicative mushroom-condition input."""
+    from datetime import date, timedelta
+
+    end = date.today() - timedelta(days=1)
+    start = end - timedelta(days=max(1, days) - 1)
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "timezone": "Europe/Warsaw",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(OPEN_METEO_ARCHIVE_URL, params=params)
+            response.raise_for_status()
+            payload = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise DataSourceError(f"Open-Meteo archive request failed: {exc}") from exc
+
+    return {
+        "provider": "Open-Meteo Archive",
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "daily": payload.get("daily", {}),
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "source_url": str(response.url),
+    }
+
 def calculate_mushroom_conditions(weather: dict[str, Any], recent: dict[str, Any] | None = None) -> dict[str, Any]:
     """Calculate a transparent 0-100 indicative score; it is not a mushroom forecast."""
     current = weather.get("current", {})
