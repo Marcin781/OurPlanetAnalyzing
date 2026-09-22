@@ -14,16 +14,17 @@ from planet_journal import build_planet_journal, render_weekly_journal_markdown
 from analysis.trends import build_signal_summary
 
 
-@app.get("/manifest.webmanifest", include_in_schema=False)
-def manifest_webmanifest():
-    return FileResponse("manifest.webmanifest", media_type="application/manifest+json")
-
 
 app = FastAPI(
     title="OurPlanetAnalyzing API",
     version="1.6.0",
     description="Analiza klimatu, srodowiska i danych geofizycznych z weryfikowalnym zrodlem danych.",
 )
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest_webmanifest():
+    return FileResponse("manifest.webmanifest", media_type="application/manifest+json")
 
 
 @app.middleware("http")
