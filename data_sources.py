@@ -8,6 +8,7 @@ import httpx
 
 
 NASA_POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
+OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 MAX_CONCURRENT_REQUESTS = 5
 MISSING_VALUE = -999.0
 
@@ -115,4 +116,33 @@ async def fetch_nasa_power_temperature_points(
         "period": {"start": start_year, "end": end_year},
         "points": results,
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+async def fetch_open_meteo_forecast(latitude: float, longitude: float, forecast_days: int = 7) -> dict[str, Any]:
+    """Fetch a compact current + daily weather forecast from Open-Meteo."""
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "timezone": "Europe/Warsaw",
+        "forecast_days": forecast_days,
+        "current": "temperature_2m,relative_humidity_2m,precipitation,weather_code",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(OPEN_METEO_URL, params=params)
+            response.raise_for_status()
+            payload = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise DataSourceError(f"Open-Meteo request failed: {exc}") from exc
+
+    return {
+        "provider": "Open-Meteo",
+        "location": {"latitude": latitude, "longitude": longitude},
+        "timezone": payload.get("timezone"),
+        "current": payload.get("current", {}),
+        "daily": payload.get("daily", {}),
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "source_url": str(response.url),
     }
