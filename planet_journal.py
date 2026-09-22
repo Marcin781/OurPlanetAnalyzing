@@ -2,7 +2,22 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
+
+
+def _publication_metadata(retrieved_at: Any) -> dict[str, Any]:
+    """Describe weekly publication cadence without mislabeling the measurement period."""
+    try:
+        generated = datetime.fromisoformat(str(retrieved_at).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        generated = datetime.now(timezone.utc)
+    iso_year, week, _ = generated.isocalendar()
+    return {
+        "type": "weekly",
+        "week": f"{iso_year}-W{week:02d}",
+        "generated_at": generated.isoformat(),
+    }
 
 
 def build_planet_journal(
@@ -49,6 +64,8 @@ def build_planet_journal(
     period = analysis.get("period", {})
     provider = analysis.get("provider", "nieznany")
     method = analysis.get("method", "brak opisu metody")
+    generated_at = analysis.get("retrieved_at")
+    publication = _publication_metadata(generated_at)
 
     observations = [
         f"Przeanalizowano {len(valid_points)} punktów reprezentatywnych."
@@ -72,7 +89,8 @@ def build_planet_journal(
 
     return {
         "title": title,
-        "generated_at": analysis.get("retrieved_at"),
+        "generated_at": generated_at,
+        "publication": publication,
         "period": period,
         "provider": provider,
         "method": method,
@@ -102,11 +120,13 @@ def render_weekly_journal_markdown(journal: dict[str, Any]) -> str:
     """Render a compact weekly journal entry from already verified data."""
     title = journal.get("title", "Dziennik Planety")
     period = journal.get("period", {})
+    publication = journal.get("publication", {})
     coverage = journal.get("coverage", {})
     anomalies = journal.get("anomalies", {})
     lines = [
         f"# {title}",
         "",
+        f"**Publikacja:** {publication.get('type', 'brak')} · {publication.get('week', 'brak')}",
         f"**Okres danych:** {period.get('start', 'brak')}–{period.get('end', 'brak')}",
         f"**Źródło:** {journal.get('provider', 'nieznane')}",
         "",
