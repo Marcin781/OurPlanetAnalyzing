@@ -128,7 +128,7 @@ async def fetch_open_meteo_forecast(latitude: float, longitude: float, forecast_
         "timezone": "Europe/Warsaw",
         "forecast_days": forecast_days,
         "current": "temperature_2m,relative_humidity_2m,precipitation,weather_code",
-        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean",
     }
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -260,3 +260,31 @@ def calculate_mushroom_conditions(weather: dict[str, Any], recent: dict[str, Any
         "reasons": reasons,
         "warning": "Wskaźnik orientacyjny; nie potwierdza występowania grzybów w lesie.",
     }
+
+
+def calculate_mushroom_history(recent: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build a simple daily condition history from archived weather observations."""
+    daily = recent.get("daily", {})
+    dates = daily.get("time", []) or []
+    highs = daily.get("temperature_2m_max", []) or []
+    rains = daily.get("precipitation_sum", []) or []
+    humidity = daily.get("relative_humidity_2m_mean", []) or []
+    history = []
+    for i, day in enumerate(dates):
+        temp = highs[i] if i < len(highs) else None
+        rain = rains[i] if i < len(rains) else 0
+        hum = humidity[i] if i < len(humidity) else None
+        parts = []
+        weights = []
+        if temp is not None:
+            t = float(temp)
+            weights.append((100.0 if 8 <= t <= 22 else max(0.0, 100 - min(abs(t-8), abs(t-22))*8), 0.4))
+        if hum is not None:
+            h = float(hum)
+            weights.append((max(0.0, 100 - abs(h-80)*2.5), 0.3))
+        r = float(rain or 0)
+        weights.append((min(100.0, r*10), 0.3))
+        total = sum(w for _, w in weights)
+        score = round(sum(v*w for v,w in weights)/total) if total else 0
+        history.append({"date": day, "score": max(0,min(100,score)), "temperature_max": temp, "precipitation_mm": r, "humidity_mean": hum})
+    return history
