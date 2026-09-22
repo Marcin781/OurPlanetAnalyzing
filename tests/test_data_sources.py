@@ -29,3 +29,35 @@ def test_monthly_completeness_handles_empty_data():
     assert result["missing_months"] == 12
     assert result["completeness_ratio"] == 0.0
     assert result["quality"] == "no_valid_data"
+
+
+def test_mushroom_history_produces_daily_scores():
+    from data_sources import calculate_mushroom_history
+
+    result = calculate_mushroom_history({
+        "daily": {
+            "time": ["2026-09-20", "2026-09-21"],
+            "temperature_2m_max": [18.0, 25.0],
+            "precipitation_sum": [8.0, 0.0],
+            "relative_humidity_2m_mean": [80.0, 50.0],
+        }
+    })
+    assert len(result) == 2
+    assert result[0]["score"] > result[1]["score"]
+    assert 0 <= result[0]["score"] <= 100
+
+
+def test_mushroom_conditions_explain_inputs():
+    from data_sources import calculate_mushroom_conditions
+
+    result = calculate_mushroom_conditions(
+        {
+            "current": {"relative_humidity_2m": 80},
+            "daily": {"precipitation_sum": [2, 2, 2], "temperature_2m_max": [18, 19, 20]},
+        },
+        {"daily": {"precipitation_sum": [5, 5, 5]}},
+    )
+    assert 0 <= result["score"] <= 100
+    assert result["level"] in {"słabe", "umiarkowane", "sprzyjające"}
+    assert len(result["reasons"]) >= 3
+    assert "orientacyjny" in result["warning"]
