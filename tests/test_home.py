@@ -26,3 +26,7 @@ def test_legnica_environment_endpoint_is_available():
 
 def test_legnica_weather_endpoint_is_available():
     assert any(route.path == "/legnica/weather" for route in app.routes)
+
+
+def test_legnica_mushroom_endpoint_is_available():
+    assert any(route.path == "/legnica/mushrooms" for route in app.routes)
