@@ -9,6 +9,7 @@ import httpx
 
 NASA_POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 MAX_CONCURRENT_REQUESTS = 5
 MISSING_VALUE = -999.0
 
@@ -185,6 +186,76 @@ def calculate_mushroom_conditions(weather: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "score": final,
+        "level": level,
+        "reasons": reasons,
+        "warning": "Wskaźnik orientacyjny; nie potwierdza występowania grzybów w lesie.",
+    }
+
+
+async def fetch_open_meteo_recent_weather(latitude: float, longitude: float, days: int = 7) -> dict[str, Any]:
+    """Fetch recent daily weather used only as an indicative mushroom-condition input."""
+    from datetime import date, timedelta
+
+    end = date.today() - timedelta(days=1)
+    start = end - timedelta(days=max(1, days) - 1)
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "timezone": "Europe/Warsaw",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(OPEN_METEO_ARCHIVE_URL, params=params)
+            response.raise_for_status()
+            payload = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise DataSourceError(f"Open-Meteo archive request failed: {exc}") from exc
+    return {
+        "provider": "Open-Meteo Archive",
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "daily": payload.get("daily", {}),
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "source_url": str(response.url),
+    }
+
+
+def calculate_mushroom_conditions(weather: dict[str, Any], recent: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Calculate a transparent 0-100 indicative score; it is not a mushroom forecast."""
+    current = weather.get("current", {})
+    daily = weather.get("daily", {})
+    recent_daily = (recent or {}).get("daily", {})
+    humidity = current.get("relative_humidity_2m")
+    future_rain = daily.get("precipitation_sum", []) or []
+    past_rain = recent_daily.get("precipitation_sum", []) or []
+    temps = daily.get("temperature_2m_max", []) or []
+
+    components = []
+    reasons = []
+
+    if humidity is not None:
+        h = float(humidity)
+        components.append((max(0.0, 100.0 - abs(h - 80.0) * 2.5), 0.30))
+        reasons.append(f"wilgotność bieżąca: {h:.0f}%")
+    recent_rain = sum(float(x or 0) for x in past_rain)
+    forecast_rain = sum(float(x or 0) for x in future_rain[:3])
+    components.append((min(100.0, recent_rain * 5.0), 0.30))
+    components.append((min(100.0, forecast_rain * 10.0), 0.15))
+    reasons.append(f"opad ostatnich dni: {recent_rain:.1f} mm")
+    reasons.append(f"prognoza opadu 3 dni: {forecast_rain:.1f} mm")
+
+    if temps:
+        suitable = sum(1 for x in temps if 8.0 <= float(x) <= 22.0)
+        components.append((100.0 * suitable / len(temps), 0.25))
+        reasons.append(f"dni z temperaturą maks. 8–22°C: {suitable}/{len(temps)}")
+
+    total_weight = sum(weight for _, weight in components)
+    score = round(sum(value * weight for value, weight in components) / total_weight) if total_weight else 0
+    level = "sprzyjające" if score >= 70 else "umiarkowane" if score >= 45 else "słabe"
+    return {
+        "score": max(0, min(100, score)),
         "level": level,
         "reasons": reasons,
         "warning": "Wskaźnik orientacyjny; nie potwierdza występowania grzybów w lesie.",
