@@ -41,6 +41,8 @@ def test_journal_preserves_provenance_and_coverage():
     ]
     assert result["period"]["start"] == "2019"
     assert result["period"]["end"] == "2025"
+    assert result["publication"]["type"] == "weekly"
+    assert result["publication"]["week"] == "2026-W39"
 
 
 def test_journal_does_not_turn_trend_into_forecast():
