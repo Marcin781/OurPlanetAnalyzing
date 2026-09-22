@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points
+from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points, fetch_open_meteo_forecast
 from regions import CENTRAL_EASTERN_EUROPE, POLISH_VOIVODESHIPS
 from cities import VOIVODESHIP_CAPITALS
 from security_guard import inspect_request, security_summary
@@ -242,6 +242,20 @@ async def agent_analyze(request: AgentRequest) -> AgentResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return AgentResponse(answer=answer)
+
+
+@app.get("/legnica/weather")
+async def legnica_weather() -> dict:
+    """Return current weather and a seven-day forecast for Legnica."""
+    try:
+        forecast = await fetch_open_meteo_forecast(51.2070, 16.1619, 7)
+    except DataSourceError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "place": "Legnica",
+        **forecast,
+        "method": "Open-Meteo forecast for the Legnica reference point; not a local station measurement",
+    }
 
 
 @app.get("/legnica/environment")
