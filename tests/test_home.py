@@ -22,3 +22,7 @@ def test_manifest_is_served_as_webmanifest():
 
 def test_legnica_environment_endpoint_is_available():
     assert any(route.path == "/legnica/environment" for route in app.routes)
+
+
+def test_legnica_weather_endpoint_is_available():
+    assert any(route.path == "/legnica/weather" for route in app.routes)
