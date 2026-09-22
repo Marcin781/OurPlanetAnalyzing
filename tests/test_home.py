@@ -20,6 +20,13 @@ def test_manifest_is_served_as_webmanifest():
     assert "Dziennik Planety" in response.text
 
 
+def test_service_worker_is_served():
+    response = client.get("/sw.js")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/javascript")
+    assert "ourplanet-v2" in response.text
+
+
 def test_legnica_environment_endpoint_is_available():
     assert any(route.path == "/legnica/environment" for route in app.routes)
 
