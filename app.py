@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points, fetch_open_meteo_forecast, calculate_mushroom_conditions
+from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points, fetch_open_meteo_forecast, fetch_open_meteo_recent_weather, calculate_mushroom_conditions
 from regions import CENTRAL_EASTERN_EUROPE, POLISH_VOIVODESHIPS
 from cities import VOIVODESHIP_CAPITALS
 from security_guard import inspect_request, security_summary
@@ -249,14 +249,16 @@ async def legnica_mushrooms() -> dict:
     """Return an indicative mushroom-condition score for Legnica."""
     try:
         weather = await fetch_open_meteo_forecast(51.2070, 16.1619, 7)
+        recent = await fetch_open_meteo_recent_weather(51.2070, 16.1619, 7)
     except DataSourceError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return {
         "place": "Legnica",
         "provider": weather["provider"],
         "period_days": 7,
-        "conditions": calculate_mushroom_conditions(weather),
+        "conditions": calculate_mushroom_conditions(weather, recent),
         "weather": weather,
+        "recent_weather": recent,
     }
 
 
