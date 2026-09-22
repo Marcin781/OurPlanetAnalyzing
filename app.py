@@ -27,6 +27,10 @@ def manifest_webmanifest():
     return FileResponse("manifest.webmanifest", media_type="application/manifest+json")
 
 
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    return FileResponse("sw.js", media_type="application/javascript")
+
 @app.middleware("http")
 async def security_guard_middleware(request: Request, call_next):
     """Apply deterministic, high-confidence request blocking before routing."""
