@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points, fetch_open_meteo_forecast, fetch_open_meteo_recent_weather, calculate_mushroom_conditions
+from data_sources import DataSourceError, fetch_nasa_power_temperature, fetch_nasa_power_temperature_points, fetch_open_meteo_forecast, fetch_open_meteo_recent_weather, calculate_mushroom_conditions, calculate_mushroom_history
 from regions import CENTRAL_EASTERN_EUROPE, POLISH_VOIVODESHIPS
 from cities import VOIVODESHIP_CAPITALS
 from security_guard import inspect_request, security_summary
@@ -242,6 +242,25 @@ async def agent_analyze(request: AgentRequest) -> AgentResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return AgentResponse(answer=answer)
+
+
+@app.get("/legnica/mushrooms/history")
+async def legnica_mushroom_history() -> dict:
+    """Return the recent daily mushroom-condition signal for Legnica."""
+    try:
+        recent = await fetch_open_meteo_recent_weather(51.2070, 16.1619, 14)
+    except DataSourceError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    history = calculate_mushroom_history(recent)
+    return {
+        "place": "Legnica",
+        "period": recent["period"],
+        "provider": recent["provider"],
+        "history": history,
+        "method": "daily indicative signal from archived weather; not an observation of mushroom fruiting",
+        "source_url": recent["source_url"],
+        "retrieved_at": recent["retrieved_at"],
+    }
 
 
 @app.get("/legnica/mushrooms")
