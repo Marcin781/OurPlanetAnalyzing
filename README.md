@@ -1,5 +1,32 @@
 # OurPlanetAnalyzing
 
+> **Status:** production-ready MVP. For new development, use `main`. See [`docs/PROJECT_MAP.md`](docs/PROJECT_MAP.md) for the branch/file map.
+
+## Quick map
+
+- `main` — **current production branch**.
+- `planet-dashboard-mvp` — legacy Dziennik Planety/PostgreSQL branch, retained for history and database recovery.
+- `codex/*`, `audit-*`, `refactor-*` — historical development branches; do not use for new features.
+
+### Main files
+
+- `app.py` — FastAPI routes and PWA home page.
+- `data_sources.py` — external data providers and data quality.
+- `planet_journal.py` — Dziennik Planety.
+- `planet_agent.py` — optional AI agent.
+- `security_guard.py` — deterministic security baseline.
+- `analysis/trends.py` — trends and anomalies.
+- `manifest.webmanifest` / `sw.js` — PWA.
+- `tests/` — automated tests.
+
+### Safe workflow
+
+`main` → change → tests → GitHub CI → Render deploy → `/status` check.
+
+**Database exports stay private and must not be committed to this public repository.**
+
+---
+
 OurPlanetAnalyzing is a FastAPI application and API for exploring climate, environmental and geophysical topics with explicit source metadata and a defensive application-security layer.
 
 > **Current status:** working engineering prototype. Live NASA POWER temperature data is available for representative analysis points. Results are not automatically treated as scientific forecasts or area-weighted regional measurements.
