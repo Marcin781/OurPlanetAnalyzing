@@ -2,6 +2,9 @@ name: Deploy to Azure Container Apps
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   id-token: write
@@ -68,10 +71,14 @@ jobs:
               OPENAI_MODEL=gpt-5.6-luna \
               OPENAI_API_KEY=secretref:openai-api-key
 
-      - name: Show deployment URL
+      - name: Verify deployment
         run: |
-          az containerapp show \
+          FQDN=$(az containerapp show \
             --name "$CONTAINER_APP" \
             --resource-group "$RESOURCE_GROUP" \
             --query properties.configuration.ingress.fqdn \
-            --output tsv
+            --output tsv)
+          test -n "$FQDN"
+          echo "Azure endpoint: https://$FQDN"
+          curl --fail --silent --show-error --max-time 20 "https://$FQDN/status"
+          echo
